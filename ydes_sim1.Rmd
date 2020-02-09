@@ -1,0 +1,67 @@
+---
+title: "Discrete Event Simulation"
+author: "Yves Sagaert"
+date: "9-2-2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulation for queueing
+
+The queueing area can be modelled as a queue following a FIFO (First-In-First-Out) principle.
+
+## Carwash example:
+
+```{r intro}
+# Parameters
+n_servers <- 2
+t_processtime <- 20 #min
+t_inter_arrival_time <- 8 #min
+t_simulation <- 600 #min
+obj_name <- 'Car'
+set.seed(1010)
+```
+
+## Simulation
+
+```{r ydes1}
+arrivals <- seq(0,600,t_inter_arrival_time)
+dessim <- data.frame(matrix(ncol=6,nrow=length(arrivals)))
+colnames(dessim) <- c('object', 'arrival_time', 'start_time', 'end_time', 'process_time', 'wait_time')
+dessim$arrival_time <- arrivals
+dessim$object <- paste0(obj_name,c(1:nrow(dessim)))
+dessim$process_time <- t_processtime
+head(dessim)
+```
+
+```{r ydes2}
+#dessim[1,3]=dessim[1,2]
+#dessim[1,4]=dessim[1,2]+dessim[1,5]
+desser <- data.frame(matrix(ncol=n_servers*2,nrow=nrow(dessim)))
+colnames(desser) <- c('S1_start','S1_end','S2_start','S2_end') #generalise by even/odd
+desser[is.na(desser)]=0 #desser[1,]=0
+i_servers = n_servers
+# Loop over arrival agenda
+i=1
+for (i in 1:nrow(dessim)){ 
+  # Line per line: new arrival in at
+  at <- dessim[i,2]
+  # Select first server ready
+  select.serv <- which.min(sapply(desser[,c(2,4)],max,na.rm=TRUE)) #even columns
+  # Start in moment st
+  st <- max(at, desser[,c(2,4)][,select.serv]) # even columns
+  desser[,c(1,3)][i,select.serv] <- st #odd columns
+  dessim[i,3] <- st
+  # Define end time
+  et <- st + dessim[i,5]
+  dessim[i,4] <- et
+  desser[,c(2,4)][i,select.serv] <- et # even columns
+}
+# Wrap up
+dessim$wait_time = dessim$start_time-dessim$arrival_time
+head(dessim)
+head(desser)
+```
